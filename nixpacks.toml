@@ -1,8 +1,5 @@
 [phases.setup]
 nixPkgs = ["poppler_utils", "tesseract"]
 
-[phases.build]
-cmds = ["python manage.py collectstatic --noinput"]
-
 [start]
 cmd = "python manage.py migrate && gunicorn core.wsgi --log-file -"
