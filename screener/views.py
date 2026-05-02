@@ -10,9 +10,12 @@ def home(request):
         print("--- POST received ---")
         using_saved = request.POST.get('using_saved') == 'true'
 
-        if using_saved:
+    if using_saved:
+        try:
             last = ResumeSubmission.objects.order_by('-submitted_at').first()
-            if last and last.resume_file:
+        except:
+            last = None
+    if last and last.resume_file:
                 job_description = request.POST.get('job_description', '').strip()
                 resume_text = request.POST.get('resume_text', '').strip()
 

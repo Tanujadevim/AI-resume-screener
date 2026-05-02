@@ -1,2 +1,8 @@
 [phases.setup]
 nixPkgs = ["poppler_utils", "tesseract"]
+
+[phases.deploy]
+cmds = ["python manage.py migrate --run-syncdb"]
+
+[start]
+cmd = "gunicorn core.wsgi --log-file -"
