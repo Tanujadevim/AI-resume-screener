@@ -1,4 +1,3 @@
-import os
 from django.shortcuts import render, redirect
 from .forms import ResumeForm
 from .models import ResumeSubmission
@@ -29,7 +28,6 @@ def home(request):
                         print(f"Reading file from path: {file_path}")
                         with open(file_path, 'rb') as f:
                             import io
-                            from .ai_analyzer import extract_text_from_pdf
                             file_obj = io.BytesIO(f.read())
                             resume_text = extract_text_from_pdf(file_obj)
 
