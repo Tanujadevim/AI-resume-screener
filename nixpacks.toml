@@ -1,5 +1,8 @@
 [phases.setup]
 nixPkgs = ["poppler_utils", "tesseract"]
 
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
 [start]
-cmd = "python manage.py migrate && gunicorn core.wsgi --log-file -"
+cmd = "python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --log-file -"
