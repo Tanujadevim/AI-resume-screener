@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Analysis Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 750px;
+            margin: 40px auto;
+            background: #f0f4f8;
+            padding: 0 20px;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .score-circle {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .score-number {
+            font-size: 72px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .score-label {
+            font-size: 16px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .verdict {
+            text-align: center;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 17px;
+            font-weight: bold;
+            margin: 15px 0 25px;
+        }
+        .verdict.high { background: #d4edda; color: #155724; }
+        .verdict.medium { background: #fff3cd; color: #856404; }
+        .verdict.low { background: #f8d7da; color: #721c24; }
+
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .section ul li {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .strengths li { background: #d4edda; color: #155724; }
+        .gaps li { background: #f8d7da; color: #721c24; }
+        .tip-box {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: #1a5276;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #3498db;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 15px;
+            margin-top: 10px;
+        }
+        .btn:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <h1>🧠 AI Resume Analysis</h1>
+
+    <div class="card">
+        <!-- Score Section -->
+        <div class="score-circle">
+            {% with feedback=submission.feedback %}
+                {% if "SCORE:" in feedback %}
+                    {% with score_line=feedback|slice:"0:20" %}
+                        <div class="score-number" id="scoreNum">--</div>
+                        <div class="score-label">Match Score</div>
+                    {% endwith %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="verdict" id="verdict"></div>
+
+        <!-- Parsed Sections -->
+        <div id="parsed-output"></div>
+
+        <div style="margin-top:10px; color:#999; font-size:13px;">
+            Submitted: {{ submission.submitted_at|date:"M d, Y H:i" }}
+        </div>
+
+        <a href="/" class="btn">← Analyse Another Resume</a>
+    </div>
+
+    <script>
+        const raw = `{{ submission.feedback|escapejs }}`;
+
+        // Extract score
+        const scoreMatch = raw.match(/SCORE:\s*(\d+)/);
+        const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+
+        if (score !== null) {
+            document.getElementById('scoreNum').textContent = score + '/100';
+
+            // Color the score
+            const el = document.getElementById('scoreNum');
+            if (score >= 75) el.style.color = '#27ae60';
+            else if (score >= 50) el.style.color = '#f39c12';
+            else el.style.color = '#e74c3c';
+
+            // Verdict message
+           // Verdict message
+const verdict = document.getElementById('verdict');
+if (score >= 80) {
+    verdict.textContent = '🌟 Excellent Match! Very high chances of getting selected.';
+    verdict.className = 'verdict high';
+} else if (score >= 70) {
+    verdict.textContent = '🎉 Strong Match! High chances of getting a call.';
+    verdict.className = 'verdict high';
+} else if (score >= 40) {
+    verdict.textContent = '⚡ Moderate Match. Worth applying but prepare for skill gaps.';
+    verdict.className = 'verdict medium';
+} else if (score >= 20) {
+    verdict.textContent = '⚠️ Weak Match. Significant skills gap for this role.';
+    verdict.className = 'verdict low';
+} else {
+    verdict.textContent = '❌ Poor Match. This role requires very different skills.';
+    verdict.className = 'verdict low';
+}
+        }
+
+        // Parse sections
+        const out = document.getElementById('parsed-output');
+
+        // Strengths
+        const strengthsMatch = raw.match(/STRENGTHS:([\s\S]*?)(?=GAPS:|$)/);
+        if (strengthsMatch) {
+            const items = strengthsMatch[1].trim().split('\n')
+                .filter(l => l.trim().startsWith('-'))
+                .map(l => `<li>${l.replace(/^-\s*/, '')}</li>`).join('');
+            out.innerHTML += `
+                <div class="section">
+                    <div class="section-title">💪 Strengths</div>
+                    <ul class="strengths">${items}</ul>
+                </div>`;
+        }
+
+        // Gaps
+        const gapsMatch = raw.match(/GAPS:([\s\S]*?)(?=TIP:|$)/);
+        if (gapsMatch) {
+            const items = gapsMatch[1].trim().split('\n')
+                .filter(l => l.trim().startsWith('-'))
+                .map(l => `<li>${l.replace(/^-\s*/, '')}</li>`).join('');
+            out.innerHTML += `
+                <div class="section">
+                    <div class="section-title">🚧 Gaps</div>
+                    <ul class="gaps">${items}</ul>
+                </div>`;
+        }
+
+        // Tip
+        const tipMatch = raw.match(/TIP:([\s\S]*?)$/);
+        if (tipMatch) {
+            out.innerHTML += `
+                <div class="section">
+                    <div class="section-title">💡 Tip</div>
+                    <div class="tip-box">${tipMatch[1].trim()}</div>
+                </div>`;
+        }
+    </script>
+</body>
+</html>
