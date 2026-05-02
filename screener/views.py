@@ -1,3 +1,4 @@
+import io
 from django.shortcuts import render, redirect
 from .forms import ResumeForm
 from .models import ResumeSubmission
@@ -10,12 +11,13 @@ def home(request):
         print("--- POST received ---")
         using_saved = request.POST.get('using_saved') == 'true'
 
-    if using_saved:
-        try:
-            last = ResumeSubmission.objects.order_by('-submitted_at').first()
-        except:
-            last = None
-    if last and last.resume_file:
+        if using_saved:
+            try:
+                last = ResumeSubmission.objects.order_by('-submitted_at').first()
+            except:
+                last = None
+
+            if last and last.resume_file:
                 job_description = request.POST.get('job_description', '').strip()
                 resume_text = request.POST.get('resume_text', '').strip()
 
@@ -26,16 +28,13 @@ def home(request):
                     })
                 try:
                     if not resume_text:
-                        # Read the actual file from disk using its path
                         file_path = last.resume_file.path
                         print(f"Reading file from path: {file_path}")
                         with open(file_path, 'rb') as f:
-                            import io
                             file_obj = io.BytesIO(f.read())
                             resume_text = extract_text_from_pdf(file_obj)
 
                     print(f"Resume text length: {len(resume_text)}")
-                    print(f"Preview: {resume_text[:200]}")
 
                     ai_result = analyze_resume(resume_text, job_description)
                     submission = ResumeSubmission(
@@ -67,15 +66,12 @@ def home(request):
 
             try:
                 if not resume_text:
-                    import io
                     file_bytes = resume_file.read()
                     file_obj = io.BytesIO(file_bytes)
                     resume_text = extract_text_from_pdf(file_obj)
-                    # Reset for saving
                     resume_file.seek(0)
 
                 print(f"Resume text length: {len(resume_text)}")
-                print(f"Preview: {resume_text[:200]}")
 
                 if not resume_text:
                     return render(request, 'screener/home.html', {
