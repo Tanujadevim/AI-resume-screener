@@ -77,7 +77,8 @@ def home(request):
                 if not resume_text:
                     return render(request, 'screener/home.html', {
                         'form': form,
-                        'error': 'Could not read your PDF. Please paste your resume text in the box below instead.'
+                        'show_paste_box': True,
+                        'error': 'Could not read your PDF automatically. Please paste your resume text below.'
                     })
 
                 ai_result = analyze_resume(resume_text, job_description)

@@ -162,6 +162,18 @@
                         <button type="button" class="remove-btn" id="removeBtn">
                             🗑 Remove
                         </button>
+                        {% if show_paste_box %}
+<div style="margin-bottom: 20px;">
+    <label for="resume_text_input">📝 Paste Your Resume Text Here</label>
+    <textarea name="resume_text" id="resume_text_input" rows="6"
+        placeholder="Copy all text from your resume and paste here..."
+        style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; 
+        font-size:14px; box-sizing:border-box; resize:vertical;"></textarea>
+    <p style="font-size:12px; color:#999; margin-top:4px;">
+        💡 Open resume → Select All (Ctrl+A) → Copy → Paste here
+    </p>
+</div>
+{% endif %}
                     </div>
                 </div>
 
