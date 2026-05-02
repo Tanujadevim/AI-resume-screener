@@ -9,94 +9,67 @@ def home(request):
 
     if request.method == 'POST':
         print("--- POST received ---")
-        using_saved = request.POST.get('using_saved') == 'true'
+        
+        resume_text = request.POST.get('resume_text', '').strip()
+        job_description = request.POST.get('job_description', '').strip()
+        
+        if not job_description:
+            return render(request, 'screener/home.html', {
+                'form': form,
+                'error': 'Please paste a job description.'
+            })
 
-        if using_saved:
-            try:
-                last = ResumeSubmission.objects.order_by('-submitted_at').first()
-            except:
-                last = None
-
-            if last and last.resume_file:
-                job_description = request.POST.get('job_description', '').strip()
-                resume_text = request.POST.get('resume_text', '').strip()
-
-                if not job_description:
-                    return render(request, 'screener/home.html', {
-                        'form': form,
-                        'error': 'Please paste a job description.'
-                    })
+        # Try to get resume text from uploaded file
+        if not resume_text:
+            form = ResumeForm(request.POST, request.FILES)
+            if form.is_valid():
+                resume_file = form.cleaned_data['resume_file']
                 try:
-                    if not resume_text:
-                        file_path = last.resume_file.path
-                        print(f"Reading file from path: {file_path}")
-                        with open(file_path, 'rb') as f:
-                            file_obj = io.BytesIO(f.read())
-                            resume_text = extract_text_from_pdf(file_obj)
-
-                    print(f"Resume text length: {len(resume_text)}")
-
-                    ai_result = analyze_resume(resume_text, job_description)
-                    submission = ResumeSubmission(
-                        resume_file=last.resume_file,
-                        job_description=job_description,
-                        feedback=ai_result,
-                    )
-                    submission.save()
-                    return redirect('result', pk=submission.id)
-
-                except Exception as e:
-                    print(f"--- ERROR: {e} ---")
-                    return render(request, 'screener/home.html', {
-                        'form': form,
-                        'error': str(e)
-                    })
-            else:
-                return render(request, 'screener/home.html', {
-                    'form': form,
-                    'error': 'No saved resume found. Please upload a new one.'
-                })
-
-        # Normal new file upload flow
-        form = ResumeForm(request.POST, request.FILES)
-        if form.is_valid():
-            resume_file = form.cleaned_data['resume_file']
-            job_description = form.cleaned_data['job_description']
-            resume_text = request.POST.get('resume_text', '').strip()
-
-            try:
-                if not resume_text:
                     file_bytes = resume_file.read()
                     file_obj = io.BytesIO(file_bytes)
                     resume_text = extract_text_from_pdf(file_obj)
                     resume_file.seek(0)
+                except Exception as e:
+                    print(f"PDF read error: {e}")
+            else:
+                # Try saved resume from DB
+                try:
+                    last = ResumeSubmission.objects.order_by('-submitted_at').first()
+                    if last and last.resume_file:
+                        with open(last.resume_file.path, 'rb') as f:
+                            file_obj = io.BytesIO(f.read())
+                            resume_text = extract_text_from_pdf(file_obj)
+                except Exception as e:
+                    print(f"Saved resume error: {e}")
 
-                print(f"Resume text length: {len(resume_text)}")
+        if not resume_text:
+            return render(request, 'screener/home.html', {
+                'form': ResumeForm(),
+                'show_paste_box': True,
+                'error': 'Could not read your PDF. Please paste your resume text below.'
+            })
 
-                if not resume_text:
-                    return render(request, 'screener/home.html', {
-                        'form': form,
-                        'show_paste_box': True,
-                        'error': 'Could not read your PDF automatically. Please paste your resume text below.'
-                    })
+        try:
+            ai_result = analyze_resume(resume_text, job_description)
+            
+            # Save submission
+            resume_file = request.FILES.get('resume_file')
+            submission = ResumeSubmission(
+                job_description=job_description,
+                feedback=ai_result,
+            )
+            if resume_file:
+                submission.resume_file = resume_file
+            submission.save()
+            
+            return redirect('result', pk=submission.id)
 
-                ai_result = analyze_resume(resume_text, job_description)
-                submission = ResumeSubmission(
-                    resume_file=resume_file,
-                    job_description=job_description,
-                    feedback=ai_result,
-                )
-                submission.save()
-                return redirect('result', pk=submission.id)
-
-            except Exception as e:
-                print(f"--- ERROR: {e} ---")
-                return render(request, 'screener/home.html', {
-                    'form': form,
-                    'error': str(e)
-                })
-        else:
-            print(f"--- Form invalid: {form.errors} ---")
+        except Exception as e:
+            print(f"--- ERROR: {e} ---")
+            return render(request, 'screener/home.html', {
+                'form': ResumeForm(),
+                'error': str(e)
+            })
 
     return render(request, 'screener/home.html', {'form': form})
 
