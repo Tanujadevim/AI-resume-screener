@@ -1,1 +1,0 @@
-web: python manage.py migrate --run-syncdb && gunicorn core.wsgi --log-file -
